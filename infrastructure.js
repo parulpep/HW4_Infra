@@ -11,7 +11,7 @@ var Blueclient = redis.createClient(6380, '127.0.0.1', {})
 var myModule = require('module');
 var items = myModule.items;
 mirror_flag = true;
-TARGET = GREEN;
+TARGET = BLUE;
 var replyA = [];
 var infrastructure =
 {
