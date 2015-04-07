@@ -49,10 +49,10 @@ Provide permissions using 'chmod +x post-receive'
 
 
 * Also in Deployment folder, in infrastructure.js, include '-w --watchDirectory=deploy/blue-www' in the 'exec' line. This will deploy the changes in the file and no need to restart the server.
-![/exec_watch](https://github.com/parulpep/HW3/blob/master/set_image.PNG)
+![/exec_watch](https://github.com/parulpep/HW4_Infra/blob/master/exec_watch.PNG)
 
 * Run the server using 'node_modules\.bin\forever start infrastructure.js' from your deployment folder from command line. The server is listening at port 8000.
-![/running_server]()
+![/running_server](https://github.com/parulpep/HW4_Infra/blob/master/running_server.PNG)
 
 ## Task 2: Create blue/green infrastructure
 
@@ -61,11 +61,11 @@ Provide permissions using 'chmod +x post-receive'
   blue-www and green-www.
 
 * I ran two redis instances at 6380 and 6379 for green-www and blue-www respectively.
-![/redis_instances]()
+![/redis_instances](https://github.com/parulpep/HW4_Infra/blob/master/redis_instances.PNG)
 
 * Change TARGET = GREEN to TARGET = BLUE in infrastructure.js
 * Output: 
-![/target_blue]()
+![/target_blue](https://github.com/parulpep/HW4_Infra/blob/master/target_blue.PNG)
 
 
 
