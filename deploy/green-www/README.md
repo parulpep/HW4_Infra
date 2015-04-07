@@ -3,68 +3,83 @@ Assignment 3
 
 ### Setup
 
+* Clone Deployment and follow the steps given in workshop.
 * Run `npm install`.
-* Install redis and run on localhost:6379
-* The file main.js has the code for routes /get, /set, /upload, /meow and /recent. The file proxy.js demonstrates a proxy      server using a simple redirect method. The file can be run using the following command from the git shell command line.
+* Install redis
+* In C:\Program Files\Redis\conf create a configuration file redis-s1-conf and change the port, logfile,dir and pidfile (my port number is 6380).
+* Now run from command line both the servers by using the commands
+   redis-server conf\redis-s1.conf for server
+   redis-cli -h 127.0.0.1 -p 6380 fpor client
+   
+   Similarly do for port number 6379.
+   
+   this will run both the instances
+   
+* The deployed HW3 file has main.js has the code for routes /get, /set, /upload, /meow and /recent. I have included just a route for /switch in there.
 
-        node main.js
+## Task 1: Complete git/hook setup
 
-The tasks are explained as below and the code files main.js and proxy.js have the comments to show each task:
+* Create post-receive file in blue.git/hooks and green.git/hooks and include the following in it.
+        
+		#!/bin/sh
+		#
+		# An example hook script for the "post-receive" event.
+		#
+		# The "post-receive" script is run after receive-pack has accepted a pack
+		# and the repository has been updated.  It is passed arguments in through
+		# stdin in the form
+		#  <oldrev> <newrev> <refname>
+		# For example:
+		#  aa453216d1b3e49e7f6f98441fa56946ddcd6a20 68f7abf4e6f922807889f52bc043ecd31b79f814 refs/heads/master
+		#
+		# see contrib/hooks/ for a sample, or uncomment the next line and
+		# rename the file to "post-receive".
 
-## Task 1: Complete set/get
+		#. /usr/share/doc/git-core/contrib/hooks/post-receive-email
 
-* Run the server using 'node main.js'. The server is listening at ports 3000 and 3001.
-* Run localhost:3000 in the browser. 
-* Run localhost:3000/set. This will store the key-value pair in database.
-* Run localhost:3000/get. This will display the message 'This message will self-destruct in 10 secs'
-* Try localhost:3000/get again in 10 secs. The message will dissapear from screen because expire function sets the timer for   the message as 10 sec.
-* Output:
+		GIT_WORK_TREE=C:/Users/parulpep/Documents/GitHub/Deployment/deploy/blue-www/ git checkout -f
 
-![/set route](https://github.com/parulpep/HW3/blob/master/set_image.PNG)
+		export GIT_WORKING_DIR=C:/Users/parulpep/Documents/GitHub/Deployment/deploy/blue-www/
 
+		cd "$GIT_WORKING_DIR"
+		npm install
 
-![/get route](https://github.com/parulpep/HW3/blob/master/get_image.PNG)
-
-
-![/get route after expiry](https://github.com/parulpep/HW3/blob/master/get_expire.PNG)
-
-
-
-## Task 2: Complete /recent
-
-* Run localhost:3000/set, localhost:3000/get and then localhost:3000/recent any number of times, the page displays the urls    visited. It will show 5 urls and it keeps on changing with each visiting url and page refresh. It shows the latest 5 urls.   The urls are displayed as below (in command line):
-
-        $ node main.js
-        Example app listening at http://:::3000
-        Example app listening at http://:::3001
-        [ '/recent', '/get', '/set', '/set', '/get' ]
-        [ '/recent', '/meow', '/meow', '/meow', '/recent' ]
-
-* Output:
-
-![/recent route](https://github.com/parulpep/HW3/blob/master/recent_image.PNG)
-
-
-## Task 3: Complete upload/meow
-
-* While the server is listening at localhost:3000, upload the images using the command below (in another git window). In       place of 'image=@C:\Users', give the complete path of the image file. You can load any number of images using the command    below. 
+Provide permissions using 'chmod +x post-receive'
 
 
-        $ curl -F "image=@C:\Users\parulpep\Documents\GitHub\Queues/img/morning.jpg" localhost:3000/upload
+
+* Also in Deployment folder, in infrastructure.js, include '-w --watchDirectory=deploy/blue-www' in the 'exec' line. This will deploy the changes in the file and no need to restart the server.
+![/exec_watch](https://github.com/parulpep/HW3/blob/master/set_image.PNG)
+
+* Run the server using 'node_modules\.bin\forever start infrastructure.js' from your deployment folder from command line. The server is listening at port 8000.
+![/running_server]()
+
+## Task 2: Create blue/green infrastructure
+
+* Deploy Hw4_App present at https://github.com/parulpep/Hw4_App
+  steps given in Deployment workshop. We will get the app in our
+  blue-www and green-www.
+
+* I ran two redis instances at 6380 and 6379 for green-www and blue-www respectively.
+![/redis_instances]()
+
+* Change TARGET = GREEN to TARGET = BLUE in infrastructure.js
+![/target_blue]()
+* Output: 
 
 
-* Then, run localhost:3000/meow, the latest uploaded image is shown. With each refresh, the next image in list is shown thus showing removal of the displayed image.
-*  Output:
+## Task 3 and 4: Demonstrate /switch and migration
 
-![/meow route](https://github.com/parulpep/HW3/blob/master/meow_image.PNG)
+* While the server is listening at localhost:8000, it transfers the request to blue-www main.js which is running at 6380 redis instance. We can run all the routes of main.js
+  here. I have a route called switch in main.js. I uploaded image using 'Curl -F "img=@./img/morning.jpg" localhost:9090/upload to blue instance.
+  If I do "localhost:8000/switch", it will switch to green and upload the image morning.jpg to redis instance of green-www, i.e., 6379.
+  
+  So, we can see here that both the functionalities of watch and data migration is taking place
 
-## Task 4: Additional service instance running
+## Task 5: Mirroring
 
-* When the main.js file is run, we can see two server instances running at port 3000 and 3001. 
-* The above routes will run succesfully on the instance localhost:3001.
+* I have included a flag in infrastructure.js that when true migrates the file from 
+  one instance to another.
+* Go to localhost:8000 and upload pic at 9090 (blue instance). On checking both the instances. One can find all the images.
 
-## Task 5: Proxy server
-
-* Run proxy.js using the command 'node proxy.js'
-* If we try running localhost:3002, it will get redirected to localhost:3000.
-* 3002 acts as a proxy server. 
+  

@@ -1,97 +1,86 @@
-# Workshop: Deployments and Deflighting
+Assignment 3
+============
 
-In this workshop, we'll cover the basics of setting up a barebone deployment pipeline, in support of a green-blue deployment strategy.  We will be able to build upon this exercise in the upcoming homework and DEPLOYMENT milestone.
+### Setup
 
-To start with, you'll need some files in this repo to help setup the blue-green infrastructure.
+* Clone Deployment and follow the steps given in workshop.
+* Run `npm install`.
+* Install redis
+* In C:\Program Files\Redis\conf create a configuration file redis-s1-conf and change the port, logfile,dir and pidfile (my port number is 6380).
+* Now run from command line both the servers by using the commands
+   redis-server conf\redis-s1.conf for server
+   redis-cli -h 127.0.0.1 -p 6380 fpor client
+   
+   Similarly do for port number 6379.
+   
+   this will run both the instances
+   
+* The deployed HW3 file has main.js has the code for routes /get, /set, /upload, /meow and /recent. I have included just a route for /switch in there.
 
-    git clone https://github.com/CSC-DevOps/Deployment.git
-    npm install
+## Task 1: Complete git/hook setup
 
-### Initializing our endpoints.
+* Create post-receive file in blue.git/hooks and green.git/hooks and include the following in it.
+        
+		#!/bin/sh
+		#
+		# An example hook script for the "post-receive" event.
+		#
+		# The "post-receive" script is run after receive-pack has accepted a pack
+		# and the repository has been updated.  It is passed arguments in through
+		# stdin in the form
+		#  <oldrev> <newrev> <refname>
+		# For example:
+		#  aa453216d1b3e49e7f6f98441fa56946ddcd6a20 68f7abf4e6f922807889f52bc043ecd31b79f814 refs/heads/master
+		#
+		# see contrib/hooks/ for a sample, or uncomment the next line and
+		# rename the file to "post-receive".
 
-We'll create two endpoints for our deployment, a "green" endpoint for our baseline, and a "blue" endpoint for our test commits.  We will be using git repositories to help with *copying over bits*.  [See guide](http://toroid.org/ams/git-website-howto) for more details.
+		#. /usr/share/doc/git-core/contrib/hooks/post-receive-email
 
-Create a folder structure as follows:
+		GIT_WORK_TREE=C:/Users/parulpep/Documents/GitHub/Deployment/deploy/blue-www/ git checkout -f
 
-* deploy/
-  * blue.git/
-  * blue-www/
-  * green.git/
-  * green-www/
+		export GIT_WORKING_DIR=C:/Users/parulpep/Documents/GitHub/Deployment/deploy/blue-www/
 
-To ensure we have a git repo that will always have files that reflect the most current state of the repo, we will use a "bare" repository, which will not have a working tree.  Using a hook script, the changes will then be checked out to public directory.
+		cd "$GIT_WORKING_DIR"
+		npm install
 
-    cd deploy/green.git
-    git init --bare
-    cd ..
-    cd blue.git
-    git init --bare
+Provide permissions using 'chmod +x post-receive'
 
-##### Post-Receive Hook
 
-Inside `$ROOT/green.git/hooks/` inside a `post-receive` file, place the following:
 
-    GIT_WORK_TREE=$ROOT/green-www/ git checkout -f
+* Also in Deployment folder, in infrastructure.js, include '-w --watchDirectory=deploy/blue-www' in the 'exec' line. This will deploy the changes in the file and no need to restart the server.
+![/exec_watch](https://github.com/parulpep/HW3/blob/master/set_image.PNG)
 
-Repeat for blue.
+* Run the server using 'node_modules\.bin\forever start infrastructure.js' from your deployment folder from command line. The server is listening at port 8000.
+![/running_server]()
 
-**Hints**
+## Task 2: Create blue/green infrastructure
 
-* You must create the *-www folder manually.
-* You may have to add executable permissions using in *nix systems `chmod +x post-receive`.
-* **Ensure that there is a script header**, such as `#!/bin/sh`, on the first line.
-* For the purpose of this workshop, `$ROOT` refers to the absolute path of your folder.
-* It will not work the first time.
+* Deploy Hw4_App present at https://github.com/parulpep/Hw4_App
+  steps given in Deployment workshop. We will get the app in our
+  blue-www and green-www.
 
-### Deploying Commits and Copying Bits
+* I ran two redis instances at 6380 and 6379 for green-www and blue-www respectively.
+![/redis_instances]()
 
-Clone the [app repo](https://github.com/CSC-DevOps/App), and set the following remotes.  See help on [file protocol syntax](http://en.wikipedia.org/wiki/File_URI_scheme#Format).
+* Change TARGET = GREEN to TARGET = BLUE in infrastructure.js
+* Output: 
+![/target_blue]()
 
-    git remote add blue file://$ROOT/blue.git
-    git remote add green file://$ROOT/green.git
 
-You can now push changes in the following manner.
 
-    git push green master
-    git push blue master
+## Task 3 and 4: Demonstrate /switch and migration
 
-You may have to create a simple commit before pushing.
+* While the server is listening at localhost:8000, it transfers the request to blue-www main.js which is running at 6380 redis instance. We can run all the routes of main.js
+  here. I have a route called switch in main.js. I uploaded image using 'Curl -F "img=@./img/morning.jpg" localhost:9090/upload to blue instance.
+  If I do "localhost:8000/switch", it will switch to green and upload the image morning.jpg to redis instance of green-www, i.e., 6379.
+  
+  So, we can see here that both the functionalities of watch and data migration is taking place
 
-### Testing deployment
+## Task 5: Mirroring
 
-Install a node process supervisor, globally, as needed by the demo, run:
+* I have included a flag in infrastructure.js that when true migrates the file from 
+  one instance to another.
+* Go to localhost:8000 and upload pic at 9090 (blue instance). On checking both the instances. One can find the images.
 
-    npm install -g forever
-
-Then bring up the infrastructure:
-
-    node infrastructure
-
-When you first run it.  It will not work!  Notice that *-www, doesn't have any node_modules/ installed.  Think about some of the conceptual issues of deploying code versus a build.  For now, you can add into a hook, a step to run: "npm install".
-
-You should be able to visit localhost:8080 and access the green slice!
-In expanding on this concept, we could do the same exact steps, but on a different AWS instances, droplets, etc.
-
-### Deploy a change.
-
-Change the message to report, "Hello Blue".  
-
-Push the change.
-
-Test the blue server directly, using port 9090.
-
-Notice, it hasn't updated yet...
-
-You will need to modify how "forever" is run, by including a "--watch" flag which will restart the process if the file it is running changes.  Think carefully on where to place the flag.  You may also need to use "--watchDirectory" depending on where you have placed the deploy folders.
-
-Push another change, "Hello Blue 2".  Now see if you can observe on the blue server.
-
-### Add auto-switch over.
-
-Have the default TARGET to be BLUE now.
-
-Modify the app repo, to explicitly fail with : `res.status(500).send('Something broke!');`
-
-Have a heartbeat that checks every 30 second for a http 500, and if so, will switch the proxy over to the green environment.
-
-This idea can be generalized to be triggered by any other monitoring/alerts/automated testing (during staging). E.g., See how to use [toobusy](https://hacks.mozilla.org/2013/01/building-a-node-js-server-that-wont-melt-a-node-js-holiday-season-part-5/).
+  
