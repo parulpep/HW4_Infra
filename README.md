@@ -84,3 +84,6 @@ Provide permissions using 'chmod +x post-receive'
 * Go to localhost:8000 and upload pic at 9090 (blue instance). On checking both the instances. One can find the images.
 
   
+## References
+
+* http://ebeid-soliman.blogspot.com/2013/07/running-multiple-redis-instances-on.html
