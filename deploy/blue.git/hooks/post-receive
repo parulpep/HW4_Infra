@@ -20,3 +20,4 @@ export GIT_WORKING_DIR=C:/Users/parulpep/Documents/GitHub/Deployment/deploy/blue
 
 cd "$GIT_WORKING_DIR"
 npm install
+
